@@ -84,8 +84,6 @@ require'nvim-treesitter.configs'.setup {
 }
 EOF
 
-
-
 inoremap <buffer> > ></<C-x><C-o><C-y><C-o>%<CR><C-o>O
 
 let g:vim_vue_plugin_config = { 

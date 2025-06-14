@@ -34,6 +34,13 @@
       }
     }
   },
+  "python.defaultInterpreterPath": "python3",
+  "python.linting.enabled": true,
+  "python.linting.pylintEnabled": false,
+  "python.linting.flake8Enabled": true,
+  "python.formatting.provider": "black",
+  "python.formatting.blackArgs": ["--line-length", "79"],
+  "python.sortImports.path": "isort",
   "html.filetypes": ["html"],
   "css.filetypes": ["css", "scss", "less"],
   "emmet.includeLanguages": {

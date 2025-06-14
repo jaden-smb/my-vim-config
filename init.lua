@@ -61,6 +61,14 @@ require("packer").startup(function(use)
   use("ap/vim-css-color")
   use("sheerun/vim-polyglot")
 
+  -- Python development support -----------------------------------
+  use("vim-python/python-syntax")
+  use("Vimjas/vim-python-pep8-indent")
+  use("tell-k/vim-autopep8")
+  use("psf/black")
+  use("fisadev/vim-isort")
+  use("vim-scripts/indentpython.vim")
+
   -- Developer helpers ---------------------------------------------
   use("mattn/emmet-vim")
   use({ "prettier/vim-prettier", run = "npm install --frozen-lockfile --production" })
@@ -119,9 +127,10 @@ require("transparent").setup({
 
 -- Treesitter -------------------------------------------------------
 require("nvim-treesitter.configs").setup({
-  ensure_installed = { "html", "css", "javascript" },
+  ensure_installed = { "html", "css", "javascript", "python", "lua", "vim", "vimdoc" },
   highlight = { enable = true },
   autotag = { enable = true },
+  indent = { enable = true },
 })
 
 -- Gitsigns ---------------------------------------------------------
@@ -293,6 +302,9 @@ vim.g.coc_global_extensions = {
   "coc-css",
   "coc-emmet",
   "coc-prettier",
+  "coc-pyright",
+  "coc-json",
+  "coc-yaml",
 }
 vim.g.coc_service_startup_timeout = 30000
 vim.g.coc_default_semantic_highlight_groups = 1
@@ -303,7 +315,7 @@ vim.g.coc_default_semantic_highlight_groups = 1
 local function coc_setup()
   vim.g.coc_disable_startup_warning = 1
   vim.api.nvim_create_autocmd("FileType", {
-    pattern = { "javascript", "typescript", "html", "css", "less", "handlebars" },
+    pattern = { "javascript", "typescript", "html", "css", "less", "handlebars", "python" },
     callback = function()
       vim.api.nvim_buf_create_user_command(0, "Format", function()
         vim.fn["CocAction"]("format")
@@ -372,18 +384,37 @@ vim.api.nvim_create_autocmd("FileType", {
   end,
 })
 
----------------------------------------------------------------------
--- Airline ----------------------------------------------------------
----------------------------------------------------------------------
-vim.g.airline_theme = "transparent"
-vim.g.airline_powerline_fonts = 1
+-- Python-specific settings ----------------------------------------
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = "python",
+  callback = function()
+    vim.bo.tabstop = 4
+    vim.bo.softtabstop = 4
+    vim.bo.shiftwidth = 4
+    vim.bo.expandtab = true
+    vim.bo.autoindent = true
+    vim.bo.fileformat = "unix"
+    -- PEP 8 compliance
+    vim.wo.colorcolumn = "79"
+    -- Python-specific keymaps
+    vim.keymap.set("n", "<leader>pb", ":!python %<CR>", { buffer = true, desc = "Run Python file" })
+    vim.keymap.set("n", "<leader>pf", ":Black<CR>", { buffer = true, desc = "Format with Black" })
+    vim.keymap.set("n", "<leader>pi", ":Isort<CR>", { buffer = true, desc = "Sort imports" })
+  end,
+})
 
----------------------------------------------------------------------
 -- User Commands ----------------------------------------------------
 ---------------------------------------------------------------------
 vim.keymap.set("n", "<leader>cr", ":CocRestart<CR>", opts)
 
----------------------------------------------------------------------
--- Auto-close plugin ------------------------------------------------
----------------------------------------------------------------------
-require("autoclose").setup() 
+-- Python development commands -------------------------------------
+vim.api.nvim_create_user_command("PyTest", function()
+  vim.cmd("botright new | terminal python -m pytest")
+end, { desc = "Run pytest in terminal" })
+
+vim.api.nvim_create_user_command("PyREPL", function()
+  vim.cmd("botright vnew | terminal python")
+end, { desc = "Open Python REPL" })
+
+vim.keymap.set("n", "<leader>pt", ":PyTest<CR>", opts)
+vim.keymap.set("n", "<leader>pr", ":PyREPL<CR>", opts)

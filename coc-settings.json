@@ -1,43 +1,44 @@
 {
-    "coc.preferences.extensionUpdateCheck": "daily",
-    "diagnostic.checkCurrentLine": true,
-    "diagnostic.virtualText": true,
-    "diagnostic.enableMessage": "jump",
-    "suggest.noselect": false,
-    "suggest.enablePreselect": false,
-    "suggest.timeout": 5000,
-    "languageserver": {
-      "html": {
-        "command": "vscode-html-language-server",
-        "args": ["--stdio"],
-        "filetypes": ["html"],
-        "initializationOptions": {
-          "embeddedLanguages": {
-            "css": true,
-            "javascript": true
-          },
-          "provideFormatter": true
+  "coc.preferences.extensionUpdateCheck": "daily",
+  "diagnostic.checkCurrentLine": true,
+  "diagnostic.virtualText": true,
+  "diagnostic.enableMessage": "jump",
+  "suggest.noselect": false,
+  "suggest.enablePreselect": false,
+  "suggest.timeout": 5000,
+  "languageserver": {
+    "html": {
+      "command": "vscode-html-language-server",
+      "args": ["--stdio"],
+      "filetypes": ["html"],
+      "initializationOptions": {
+        "embeddedLanguages": {
+          "css": true,
+          "javascript": true
         },
-        "trace.server": "off"
+        "provideFormatter": true
       },
-      "handlebars": {
-        "command": "vscode-html-language-server",
-        "args": ["--stdio"],
-        "filetypes": ["handlebars", "hbs"],
-        "priority": 100,
-        "initializationOptions": {
-          "embeddedLanguages": {
-            "css": true,
-            "javascript": true
-          },
-          "provideFormatter": true
-        }
-      }
+      "trace.server": "off"
     },
-    "html.filetypes": ["html"],
-    "css.filetypes": ["css", "scss", "less"],
-    "emmet.includeLanguages": {
-      "handlebars": "html",
-      "hbs": "html"
+    "handlebars": {
+      "command": "vscode-html-language-server",
+      "args": ["--stdio"],
+      "filetypes": ["handlebars", "hbs"],
+      "priority": 100,
+      "initializationOptions": {
+        "embeddedLanguages": {
+          "css": true,
+          "javascript": true
+        },
+        "provideFormatter": true
+      }
     }
-  }
+  },
+  "html.filetypes": ["html"],
+  "css.filetypes": ["css", "scss", "less"],
+  "emmet.includeLanguages": {
+    "handlebars": "html",
+    "hbs": "html"
+  },
+  "snippets.ultisnips.pythonPrompt": false
+}

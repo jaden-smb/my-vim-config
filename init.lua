@@ -113,56 +113,71 @@ end)
 -- Plugin Config ----------------------------------------------------
 ---------------------------------------------------------------------
 -- Transparent.nvim -------------------------------------------------
-require("transparent").setup({
-  extra_groups = {
-    "NormalFloat", "StatusLine", "StatusLineNC", "VertSplit",
-    "FloatBorder", "NonText", "SpecialKey", "Folded", "FoldColumn",
-    "Pmenu", "CursorLine", "TabLine", "TabLineFill", "TabLineSel",
-    "NvimTreeNormal", "TelescopeNormal", "WhichKeyFloat",
-    "NightfoxNormal", "NightfoxFloat", "NightfoxStatusLine",
-  },
-  exclude_groups = {},
-  enable = true,
-})
+local ok, transparent = pcall(require, "transparent")
+if ok then
+  transparent.setup({
+    extra_groups = {
+      "NormalFloat", "StatusLine", "StatusLineNC", "VertSplit",
+      "FloatBorder", "NonText", "SpecialKey", "Folded", "FoldColumn",
+      "Pmenu", "CursorLine", "TabLine", "TabLineFill", "TabLineSel",
+      "NvimTreeNormal", "TelescopeNormal", "WhichKeyFloat",
+      "NightfoxNormal", "NightfoxFloat", "NightfoxStatusLine",
+    },
+    exclude_groups = {},
+    enable = true,
+  })
+end
 
 -- Treesitter -------------------------------------------------------
-require("nvim-treesitter.configs").setup({
-  ensure_installed = { "html", "css", "javascript", "python", "lua", "vim", "vimdoc" },
-  highlight = { enable = true },
-  autotag = { enable = true },
-  indent = { enable = true },
-})
+local ok, treesitter = pcall(require, "nvim-treesitter.configs")
+if ok then
+  treesitter.setup({
+    ensure_installed = { "html", "css", "javascript", "python", "lua", "vim", "vimdoc" },
+    highlight = { enable = true },
+    autotag = { enable = true },
+    indent = { enable = true },
+  })
+end
 
 -- Gitsigns ---------------------------------------------------------
-require("gitsigns").setup({
-  signs = {
-    add = { text = "│" },
-    change = { text = "│" },
-    delete = { text = "_" },
-    topdelete = { text = "‾" },
-    changedelete = { text = "~" },
-    untracked = { text = "┆" },
-  },
-  signcolumn = true,
-  numhl = false,
-  linehl = false,
-  word_diff = false,
-  watch_gitdir = { follow_files = true },
-  attach_to_untracked = true,
-  current_line_blame = false,
-  current_line_blame_opts = {
-    virt_text = true,
-    virt_text_pos = "eol",
-    delay = 1000,
-  },
-  update_debounce = 100,
-  diff_opts = { internal = true },
-})
+local ok, gitsigns = pcall(require, "gitsigns")
+if ok then
+  gitsigns.setup({
+    signs = {
+      add = { text = "│" },
+      change = { text = "│" },
+      delete = { text = "_" },
+      topdelete = { text = "‾" },
+      changedelete = { text = "~" },
+      untracked = { text = "┆" },
+    },
+    signcolumn = true,
+    numhl = false,
+    linehl = false,
+    word_diff = false,
+    watch_gitdir = { follow_files = true },
+    attach_to_untracked = true,
+    current_line_blame = false,
+    current_line_blame_opts = {
+      virt_text = true,
+      virt_text_pos = "eol",
+      delay = 1000,
+    },
+    update_debounce = 100,
+    diff_opts = { internal = true },
+  })
+end
 
 ---------------------------------------------------------------------
 -- Colourscheme -----------------------------------------------------
 ---------------------------------------------------------------------
-vim.cmd("colorscheme nightfox")
+-- Try to set colorscheme with fallback
+local colorscheme = "nightfox"
+local success = pcall(vim.cmd, "colorscheme " .. colorscheme)
+if not success then
+  -- Fallback to default colorscheme
+  vim.cmd("colorscheme default")
+end
 
 -- Extra transparency on top of theme ------------------------------
 local function apply_transparent_highlights()
@@ -201,7 +216,23 @@ map("v", "<Space>", "zf", opts)
 
 -- Plugin Ops -------------------------------------------------------
 map("n", "<leader>s", ":CocSearch ", { noremap = true })
-map("n", "<leader>f", ":Files<CR>", opts)
+map("n", "<leader>f", function()
+  -- Store current window info before opening fzf
+  local current_win = vim.api.nvim_get_current_win()
+  vim.cmd("Files")
+  -- Set up autocmd to restore proper window context after fzf closes
+  vim.api.nvim_create_autocmd("BufEnter", {
+    once = true,
+    callback = function()
+      vim.defer_fn(function()
+        -- Refresh NERDTree state detection after fzf
+        if vim.fn.exists("g:NERDTree") == 1 then
+          vim.cmd("silent! doautocmd WinEnter")
+        end
+      end, 50)
+    end,
+  })
+end, opts)
 map("n", "<leader>g", ":Rg<CR>", opts)
 map("n", "<leader>d", function()
   vim.cmd("lua ToggleNERDTreeWithRefresh()")
@@ -248,9 +279,19 @@ map("n", "<leader>gpl", ":Git pull<CR>")
 -- NERDTree Helpers -------------------------------------------------
 ---------------------------------------------------------------------
 local function is_nerdtree_open()
+  -- Simple and reliable method: check all windows for NERDTree
   for _, win in ipairs(vim.api.nvim_list_wins()) do
-    local bufname = vim.api.nvim_buf_get_name(vim.api.nvim_win_get_buf(win))
+    local buf = vim.api.nvim_win_get_buf(win)
+    local bufname = vim.api.nvim_buf_get_name(buf)
+    
+    -- Check buffer name pattern
     if bufname:match("NERD_tree_") then
+      return true
+    end
+    
+    -- Also check filetype with error handling
+    local success, filetype = pcall(vim.api.nvim_buf_get_option, buf, 'filetype')
+    if success and filetype == "nerdtree" then
       return true
     end
   end
@@ -258,31 +299,49 @@ local function is_nerdtree_open()
 end
 
 local function toggle_nerdtree_with_refresh()
+  -- Force refresh NERDTree state detection
+  vim.cmd("silent! doautocmd WinEnter")
+  
   if vim.fn.exists(":NERDTreeTabsToggle") == 2 then
     vim.cmd("NERDTreeTabsToggle")
     return
   end
+  
   if is_nerdtree_open() then
     vim.cmd("NERDTreeClose")
   else
-    if vim.fn.expand("%:p") ~= "" then
+    -- Get current file path
+    local current_file = vim.fn.expand("%:p")
+    if current_file ~= "" and vim.fn.filereadable(current_file) == 1 then
       vim.cmd("NERDTreeFind")
     else
       vim.cmd("NERDTree")
     end
+    -- Ensure we return focus to the previous window
+    vim.cmd("wincmd p")
   end
 end
 _G.ToggleNERDTreeWithRefresh = toggle_nerdtree_with_refresh
 
 local function nerdtree_refresh_root()
+  local current_file = vim.fn.expand("%:p")
+  
   if is_nerdtree_open() then
     vim.cmd("NERDTreeClose")
     vim.defer_fn(function()
-      vim.cmd("NERDTree %:p:h")
+      if current_file ~= "" then
+        vim.cmd("NERDTree " .. vim.fn.fnameescape(vim.fn.fnamemodify(current_file, ":h")))
+      else
+        vim.cmd("NERDTree")
+      end
       vim.cmd("wincmd p")
     end, 100)
   else
-    vim.cmd("NERDTree %:p:h")
+    if current_file ~= "" then
+      vim.cmd("NERDTree " .. vim.fn.fnameescape(vim.fn.fnamemodify(current_file, ":h")))
+    else
+      vim.cmd("NERDTree")
+    end
     vim.cmd("wincmd p")
   end
 end
@@ -291,6 +350,34 @@ vim.keymap.set("n", "<leader>r", nerdtree_refresh_root, opts)
 -- NERDTree behaviour ------------------------------------------------
 vim.g.NERDTreeQuitOnOpen = 1
 vim.g.NERDTreeIgnore = { "^node_modules$", "^\\.git$", "^\\.DS_Store$" }
+vim.g.NERDTreeShowHidden = 1
+vim.g.NERDTreeAutoDeleteBuffer = 1
+vim.g.NERDTreeMinimalUI = 1
+vim.g.NERDTreeDirArrows = 1
+
+-- NERDTree Tabs configuration
+vim.g.nerdtree_tabs_open_on_console_startup = 0
+vim.g.nerdtree_tabs_focus_on_files = 1
+vim.g.nerdtree_tabs_meaningful_tab_names = 1
+
+-- Auto-refresh NERDTree when files change
+vim.api.nvim_create_autocmd({"BufEnter", "BufWritePost"}, {
+  callback = function()
+    -- Use pcall to safely check if NERDTree is open and refresh it
+    local success, result = pcall(function()
+      if is_nerdtree_open() then
+        vim.cmd("silent! NERDTreeRefreshRoot")
+      end
+    end)
+    if not success then
+      -- If there's an error, silently ignore it to prevent spam
+      -- This can happen during startup or plugin loading
+    end
+  end,
+})
+
+-- Fallback keybinding for NERDTree toggle (in case main one fails)
+vim.keymap.set("n", "<leader>D", ":NERDTreeToggle<CR>", opts)
 
 ---------------------------------------------------------------------
 -- CoC Global Variables --------------------------------------------
